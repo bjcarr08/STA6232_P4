@@ -1,66 +1,592 @@
 ---
 title: "Project 4"
-author: "Your Name Here"
+subtitle: "Stats for Data Science II (STA6232)"
+author: "Brandy Carr"
+date: "`r Sys.Date()`"
 format: 
   html:
+    grid: 
+      sidebar-width: 0px
+      body-width: 1200px
+      margin-width: 0px
     self-contained: true
+    linkcolor: "#037968"
     echo: true
     message: false
     warning: false
-    error: true # IMPORTANT NOTE - this makes the file render even if there is an error. it is imperative that you check your .html document *before submission* to make sure that it has all results in it.
+    error: true 
+    highlight-style: highlight.theme
 editor: source
 ---
 
-**Recall the [Jackson Heart Study](https://www.jacksonheartstudy.org/) data from previous projects. You can find data from clinic visits 1, 2, and 3 on Canvas. For any question requiring an $\alpha$, assume $\alpha=0.05$.**
+<head>
 
-**1. Create a variable that counts the number of controllable risk factors for stroke at visit 1: blood pressure (*idealHealthBP*; 1=ideal health, 0=not ideal health), smoking status (*idealHealthSMK*; 1=ideal health, 0=not ideal health), diabetes (*idealHealthDM*; 1=ideal health, 0=not ideal health), diet  (*idealHealthNutrition*; 1=ideal health, 0=not ideal health), physical activity (*idealHealthPA*; 1=ideal health, 0=not ideal health), obesity  (*idealHealthBMI*; 1=ideal health, 0=not ideal health), and high cholesterol  (*idealHealthChol*; 1=ideal health, 0=not ideal health). Note: all of the idealHealth variables indicate *ideal* health… you are being asked to count the number of *not ideal* health indicators.**
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
 
-**2a. Use Poisson regression to model the count variable created in 1 as a function of age at visit 1 (*age*; years), health insurance status at visit 1 (*PrivatePublicIns*; 0=uninsured, 1=private insurance only, 2=public insurance only, 3=private and public insurances), and education status at visit 1 (*HSgrad*; 0=did not graduate high school, 1=graduated high school).**
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik+Doodle+Shadow">
+
+<style>
+
+body {
+  font-family: Quicksand !important;
+  font-size: 16px !important;
+  color: #9C8C7B !important;
+}
+
+div.quarto-title>h1 {
+  font-family: Rubik Doodle Shadow !important;
+  font-weight: 800 !important;
+  font-size: 48px !important;
+  color: #6D6F06 !important;
+}
+
+div.quarto-title>p {
+  font-family: Rubik Doodle Shadow !important;
+  font-weight: 400 !important;
+  opacity: 0.8 !important;
+  font-size: 26px !important;
+  color: #6D6F06 !important;
+}
+
+#title-block-header.quarto-title-block.default .quarto-title-meta {
+  font-family: Rubik Doodle Shadow !important;
+  font-size: 24px !important;
+  color: #6D6F06 !important;
+}
+
+#title-block-header.quarto-title-block.default .quarto-title-meta-heading {
+  font-weight: 800 !important;
+  opacity: 0.9 !important;
+}
+
+#title-block-header.quarto-title-block.default .quarto-title-meta-contents p {
+  font-weight: 400 !important;
+  opacity: 0.8 !important;
+}
+
+h2 {
+  font-family: Rubik Doodle Shadow !important;
+  font-weight: 800 !important;
+  font-size: 36px !important;
+  color: #000000 !important;
+  border-bottom: 1px solid #B9B9B9 !important;
+}
+
+h4 {
+  font-family: Quicksand !important;
+  font-size: 20px !important;
+  color: #000000 !important;
+}
+
+details>summary {
+  color: #FA962D !important;
+}
+
+pre>code.sourceCode {
+  font-size: 12px !important;
+  font-weight: 300 !important;
+}
+
+div.sourceCode {
+font-size: 12px !important;
+font-weight: 300 !important;
+color: #9C8C7B !important;
+background-color: #F9F9F9 !important;
+border: 1px solid #CDC8B1 !important;
+}
+
+div.cell-output>pre {
+font-size: 12px !important;
+font-weight: 300 !important;
+color: #9C8C7B !important;
+background-color: #F9F9F9 !important;
+border: 1px solid #CDC8B1 !important;
+}
+
+</style>
+
+</head>
+
+<!--$\underline{\hspace{ 5.5 in}}$-->
+
+</br>
+
+#### **Recall the [Jackson Heart Study](https://www.jacksonheartstudy.org/) data from previous projects. You can find data from clinic visits 1, 2, and 3 on Canvas. For any question requiring an $\alpha$, assume $\alpha=0.05$.**
 
 ```{r}
-
+#| code-fold: true
+#| code-summary: "R Code: Packages & Data Import."
+library(data.table)
+library(tidyverse)
+library(kableExtra)
+library(fastDummies)
+JHS <- haven::read_sas("analysis1.sas7bdat")
 ```
 
-**2b. Perform the appropriate hypothesis test(s) to determine which, if any, are significant predictors of the number of controllable risk factors for stroke.**
+</br>
+
+## 1
+
+#### **Create a variable that counts the number of controllable risk factors for stroke at visit 1.** (Note: all of the idealHealth variables indicate *ideal* health… you are being asked to count the number of *not ideal* health indicators.)
+
+
+<!-- OLD R CODE
+#| echo: false
+#| label: fig-VariablesTable
+#| fig-cap: "Variables" 
+Name = names(JHS)
+Label = c(0); for(i in 1:length(Name)){Label[i] = (lapply(JHS, attributes))[[i]]$label}
+Uniques = (lapply(JHS, function(x) length(unique(na.omit(x))))) %>% unlist(use.names=F)
+NAs = (lapply(JHS, function(x) length(which(is.na(x))))) %>% unlist(use.names=F)
+
+Meta = data.frame("Column" = c(1:length(Name)), Name, Label, Uniques, NAs)
+
+p4Vars = (filter(Meta, Label %like% "Ideal|ideal|IDEAL" | Name %like% "Ideal|ideal|IDEAL"))
+
+p4Vars %>% 
+  kbl(align=c("c","l","l","c","c"), 
+      format = "html", 
+      table.attr = "style = \"
+        color: #000000; 
+        background-color: #DCDCDC; 
+        border: 1px solid #000000;
+        border-spacing: 25px 10px;
+        border-collapse: separate;
+        margin-bottom: 0rem;
+        line-height: 32px;
+        vertical-align: internal center;
+        font-size: 14px;\"") %>%
+  column_spec(1, width="10em") %>%
+  column_spec(2, width="15em") %>%
+  column_spec(3, width="35em") %>%
+  column_spec(4, width="10em") %>%
+  column_spec(5, width="10em")
+-->
 
 ```{r}
+#| echo: false
+#| label: fig-VariablesTable
+#| fig-cap: "Variables"
+Name = names(JHS)
+Label = c(0); for(i in 1:length(Name)){Label[i] = (lapply(JHS, attributes))[[i]]$label}
+Uniques = (lapply(JHS, function(x) length(unique(na.omit(x))))) %>% unlist(use.names=F)
+NAs = (lapply(JHS, function(x) length(which(is.na(x))))) %>% unlist(use.names=F)
 
+Meta = data.frame("Column" = c(1:length(Name)), Name, Label, Uniques, NAs)
+
+p4Vars = (filter(Meta, Label %like% "Ideal|ideal|IDEAL" | Name %like% "Ideal|ideal|IDEAL"))
+
+p4Vars %>% 
+  kbl(align=c("c","l","l","c","c")) %>% 
+  kable_styling("bordered") %>%
+  kable_classic_2("hover") %>%
+  column_spec(5, width="6em")
 ```
-
-**2c. Find the incident rate ratios and corresponding 95% CIs for the predictors.**
 
 ```{r}
+#| code-fold: true
+#| code-summary: "R Code: Figure 1"
+#| eval: false
+Name = names(JHS)
+Label = c(0); for(i in 1:length(Name)){Label[i] = (lapply(JHS, attributes))[[i]]$label}
+Uniques = (lapply(JHS, function(x) length(unique(na.omit(x))))) %>% unlist(use.names=F)
+NAs = (lapply(JHS, function(x) length(which(is.na(x))))) %>% unlist(use.names=F)
 
+Meta = data.frame("Column" = c(1:length(Name)), Name, Label, Uniques, NAs)
+
+p4Vars = (filter(Meta, Label %like% "Ideal|ideal|IDEAL" | Name %like% "Ideal|ideal|IDEAL"))
+
+p4Vars %>% 
+  kbl(align=c("c","l","l","c","c")) %>% 
+  kable_styling("bordered") %>%
+  kable_classic_2("hover") %>%
+  column_spec(5, width="6em")
 ```
 
-**2d. Provide brief interpretations of the incident rate ratios found in 2c.**
-
-
-
-**2e. Construct an appropriate data visualization to help with explaining the model results. Number of controllable risk factors for stroke should be on the y-axis and age should be on the x-axis. You choose what lines to create.**
+</br>
 
 ```{r}
+JHS <- JHS %>% 
+          # change 0's to 1's & 1's to 0's, for all columns that start with "ideal"
+          mutate(across(starts_with("ideal"), ~ifelse(.x==0, 1, ifelse(.x==1, 0, NA)))) %>%
+          # create a new column named "RiskFactors" that-
+          # for each row (observation), sum all the columns that start with "ideal", omitting any rows with any NAs 
+          mutate(RiskFactors = rowSums(select(., starts_with("ideal")), na.rm=F))
 
+# unused kable table
+# as.data.frame(JHS1 %>% select(starts_with("ideal"), RiskFactors))[1:10,] %>% kbl()
+
+# subset data (idealHealth vars & RiskFactor var)
+idealHealth_vars <- JHS %>% select(starts_with("ideal"), RiskFactors)
+
+# renamed vars to fit on screen
+names(idealHealth_vars) <- c("SMK","BMI","PA","Nutrition","Chol","BP","DM","RiskFactors")
+
+idealHealth_vars[1:10,]
 ```
 
-**3a. Use negative binomial regression to model the count variable created in 1 as a function of age (*age*; years), health insurance (*PrivatePublicIns*; 0=uninsured, 1=private insurance only, 2=public insurance only, 3=private and public insurances), and education status (*HSgrad*; 0=did not graduate high school, 1=graduated high school).**
+</br>
+
+
+## 2
+
+#### **A.  Use Poisson regression to model the count variable created in 1** (*RiskFactors*) **as a function of: age at visit 1** (*age*; years), **health insurance status at visit 1** (*PrivatePublicIns*; 0=uninsured, 1=private insurance only, 2=public insurance only, 3=private and public insurances), **education status at visit 1** (*HSgrad*; 0=did not graduate high school, 1=graduated high school)**.**
+
+</br>
 
 ```{r}
+JHS1 <- JHS %>%
+          mutate(
+            # changed to a factor, labeled levels, & renamed as Ins
+            Ins = factor(PrivatePublicIns, levels=c(0,1,2,3), labels=c("Uninsured","PrivateONLY","PublicONLY","Both")),
+            # changed to a factor & labeled levels
+            HSgrad = factor(HSgrad, levels=c(0,1), labels=c("No","Yes")),
+            # capitalized the var name
+            Age = age) %>%
+          select(RiskFactors, Age, Ins, HSgrad) %>%
+          na.omit()
 
+# model 1
+m1 <- glm(RiskFactors ~ Age + HSgrad + Ins, data=JHS1, family="poisson")
+
+# coefficients of model 1
+c1 <- coefficients(m1)
+
+round(t(t(c1)), 2)
 ```
 
-**3b. Compare and contrast models 2a and 3a. What do you notice?**
+</br>
 
-**3c. Check the assumption for Poisson regression.**
+$$\large{ln \left( \hat{y} \right) = 1.17 + 0.01(Age) - 0.02(HSgrad_{Yes}) - 0.06(Ins_{PrivateONLY}) - 0.03(Ins_{PublicONLY}) - 0.08(Ins_{Both})}$$ {#eq-m1}
+
+$$\small{\text{coefficients displayed are rounded to 2 decimal places}}$$
+
+</br>
+
+#### **B. Perform the appropriate hypothesis test(s) to determine which, if any, are significant predictors of the number of controllable risk factors for stroke** (*RiskFactors*)**.**
+
+</br>
 
 ```{r}
-
+# used to determine significance for predictors: Age & HSgrad
+round(summary(m1)$coeff[drop=F, c(2,3), c(3,4)], 4)
 ```
 
-**3d. Use your response in 3c to explain your observations in 3b.**
+</br>
 
+`Age`
 
+- Hypotheses
 
-**4. Required for graduate students / extra credit for undergraduate students: Write a paragraph to summarize the analyses in this project, written such that a non-quantitative person could understand.**
+  - $H_{0}$ : $\beta_{Age} = 0$
+  - $H_{1}$ : $\beta_{Age} \ne 0$
+    
+- Test Statistic
+
+  - $z_{0} = 7.1884$
+    
+- P-Value
+
+  - $p < 0.001$
+
+- Rejection Region
+
+  - Reject $H_{0}$ if $p < \alpha;$ $\phantom0 \alpha = 0.05$
+
+- Conclusion
+
+  - Reject $H_{0}$
+  - There is sufficient evidence to suggest that *Age* is a significant predictor of the number of controllable risk factors for stroke (*RiskFactors*).
+
+</br>
+
+`HSgrad`
+
+- Hypotheses
+
+  - $H_{0}$ : $\beta_{HSgrad} = 0$
+  - $H_{1}$ : $\beta_{HSgrad} \ne 0$
+    
+- Test Statistic
+
+  - $z_{0} = -0.6633$
+    
+- P-Value
+
+  - $p = 0.5071$
+
+- Rejection Region
+
+  - Reject $H_{0}$ if $p < \alpha;$ $\phantom0 \alpha = 0.05$
+
+- Conclusion
+
+  - Fail to Reject $H_{0}$
+  - There is NOT sufficient evidence to suggest that graduating high school (*HSgrad*) is a significant predictor of the number of controllable risk factors for stroke (*RiskFactors*).
+  
+</br>
+
+```{r}
+# used to determine significance of predictor: Ins
+Ins_Anova <- car::Anova(m1, type=3)[drop=F, 3, ]
+attr(Ins_Anova, "heading") <- NULL
+Ins_Anova
+```
+
+</br>
+
+`Ins`
+
+- Hypotheses
+
+  - $H_{0}$ : $\beta_{Ins_{PrivateONLY}} = \beta_{Ins_{PublicONLY}} = \beta_{Ins_{Both}} = 0$
+  - $H_{1}$ : at least one $\beta_{i} \ne 0$
+
+- Test Statistic  
+
+  - $\chi^2 = 5.0109$
+
+- P-Value  
+
+  - $p = 0.171$
+
+- Rejection Region 
+
+  - Reject $H_{0}$ if $p < \alpha;$ $\phantom0 \alpha = 0.05$
+
+- Conclusion  
+
+  - Fail to Reject $H_{0}$
+  - There is NOT sufficient evidence to suggest that the relationship between health insurance status (*Ins*) and the number of controllable risk factors for stroke (*RiskFactors*).
+
+</br>
+
+#### **C. Find the incident rate ratios and corresponding 95% CIs for the predictors.**
+
+</br>
+
+$$\Large{IRR_{i} = e^{\hat{\beta}_{i}}}$$
+
+</br>
+
+```{r}
+round(
+  cbind(
+    "IRR" = exp(c1), 
+    "2.5%" = unname(exp(confint(m1))[,"2.5 %"]),
+    "97.5%" = unname(exp(confint(m1))[,"97.5 %"])),
+  2)
+```
+
+</br>
+
+#### **D. Provide brief interpretations of the incident rate ratios found in 2c.**
+
+</br>
+ 
+**Age:** 
+
+- For every year older, the expected count of controllable risk factors for stroke is multiplied by 0.8%.
+- For every 10 years increase in age, the expected count of controllable risk factors for stroke is multiplied by 8.31%.
+
+**HSgrad:** 
+
+- Those who graduated high school have an expected count of controllable risk factors for stroke that is 0.98 times the count for those who did not graduate high school. 
+- This is a 2.07% decreased.
+
+**InsPrivateONLY:** 
+
+- Those who only carry private insurance have an expected count of controllable risk factors for stroke that is 0.94 times the count for those who are uninsured.
+- This is a 5.75% decrease.
+
+**InsPublicONLY:** 
+
+- Those who only carry public insurance have an expected count of controllable risk factors for stroke that is 0.97 times the count for those who are uninsured.
+- This is a 2.58%% decrease.
+
+**InsBoth:** 
+
+- Those who only carry both private and public insurance have an expected count of controllable risk factors for stroke that is 0.92 times the count for those who are uninsured.
+- This is a 7.78%% decrease.
+
+</br>
+
+#### **E. Construct an appropriate data visualization to help with explaining the model results. Number of controllable risk factors for stroke should be on the y-axis and age should be on the x-axis. You choose what lines to create.**
+
+</br>
+
+```{r}
+#| fig-align: left
+#| out-width: 100%
+#| fig-asp: 0.5
+#| fig-dpi: 300
+#| code-fold: show
+#| code-summary: "R Code: Click here to hide code."
+JHS1 <- JHS1 %>% 
+  dummy_cols(select_columns = c("HSgrad","Ins")) %>%
+  mutate(HSgrad_labs = ifelse(HSgrad=="Yes", "Graduated HS", "Did NOT Graduate HS"),
+         yhat = exp(c1["(Intercept)"] + 
+                    c1["Age"]*Age + 
+                    c1["HSgradYes"]*HSgrad_Yes +
+                    c1["InsPrivateONLY"]*Ins_PrivateONLY +
+                    c1["InsPublicONLY"]*Ins_PublicONLY +
+                    c1["InsBoth"]*Ins_Both),
+         yhat_Ins_Uninsured = exp(c1["(Intercept)"] + 
+                                  c1["Age"]*Age + 
+                                  c1["HSgradYes"]*HSgrad_Yes +
+                                  c1["InsPrivateONLY"]*0 +
+                                  c1["InsPublicONLY"]*0 +
+                                  c1["InsBoth"]*0),
+         yhat_Ins_PrivateONLY = exp(c1["(Intercept)"] + 
+                                    c1["Age"]*Age + 
+                                    c1["HSgradYes"]*HSgrad_Yes +
+                                    c1["InsPrivateONLY"]*1 +
+                                    c1["InsPublicONLY"]*0 +
+                                    c1["InsBoth"]*0),
+         yhat_Ins_PublicONLY = exp(c1["(Intercept)"] + 
+                                   c1["Age"]*Age + 
+                                   c1["HSgradYes"]*HSgrad_Yes +
+                                   c1["InsPrivateONLY"]*0 +
+                                   c1["InsPublicONLY"]*1 +
+                                   c1["InsBoth"]*0),
+         yhat_Ins_Both = exp(c1["(Intercept)"] + 
+                             c1["Age"]*Age + 
+                             c1["HSgradYes"]*HSgrad_Yes +
+                             c1["InsPrivateONLY"]*0 +
+                             c1["InsPublicONLY"]*0 +
+                             c1["InsBoth"]*1)) %>%
+  group_by(HSgrad_labs)
+
+  ggplot(JHS1, aes(y=RiskFactors, x=Age, group=HSgrad_labs)) +
+  geom_point(aes(fill=Ins, color=Ins), size=2) +
+  geom_point(size=2, color="gray70") +
+  scale_fill_manual(values=c("#9E0142","#AD8CFF","#0099FF","#A0A203")) +
+  scale_color_manual(values=c("#9E0142","#AD8CFF","#0099FF","#A0A203")) +
+  geom_line(aes(y=yhat_Ins_Uninsured), linewidth=0.7, color="#9E0142") +
+  geom_line(aes(y=yhat_Ins_PrivateONLY), linewidth=0.7, color="#AD8CFF") +
+  geom_line(aes(y=yhat_Ins_PublicONLY), linewidth=0.7, color="#0099FF") +
+  geom_line(aes(y=yhat_Ins_Both), linewidth=0.7, color="#A0A203") +
+  labs(color="Ins", fill="Ins", group="HSgrad_labs") +
+  theme_bw(base_size=8) +
+  theme(legend.position="right", legend.title=element_blank()) +
+  facet_wrap("HSgrad_labs", nrow=1)
+```
+
+</br>
+
+</br>
+
+## 3
+
+#### **A. Use negative binomial regression to model the count variable created in 1** (*RiskFactors*) **as a function of: age** (*age*; years)**, health insurance** (*PrivatePublicIns*; 0=uninsured, 1=private insurance only, 2=public insurance only, 3=private and public insurances)**, and education status** (*HSgrad*; 0=did not graduate high school, 1=graduated high school)**.**
+
+</br>
+
+```{r}
+# model 2
+m2 <- MASS::glm.nb(RiskFactors ~ Age + HSgrad + Ins, data=JHS1)
+
+# coefficients of model 2
+c2 <- coefficients(m2)
+
+round(t(t(c2)), 2)
+```
+
+</br>
+
+$$\large{ln \left( \hat{y} \right) = 1.17 + 0.01(Age) - 0.02(HSgrad_{Yes}) - 0.06(Ins_{PrivateONLY}) - 0.03(Ins_{PublicONLY}) - 0.08(Ins_{Both})}$$ {#eq-m2}
+
+$$\small{\text{coefficients displayed are rounded to 2 decimal places}}$$
+
+</br>
+
+#### **B. Compare and contrast models 2a and 3a. What do you notice?**
+
+They result in the same model. 
+
+<!--
+Poisson regression is also a special case of the generalized linear model, where the random component is specified by the Poisson distribution. This usually works well when the response variable is a count of some occurrence, such as the number of calls to a customer service number in an hour or the number of cars that pass through an intersection in a day. Unlike the binomial distribution, which counts the number of successes in a given number of trials, a Poisson count is not bounded above.
+
+Since a Poisson random variable is a count, its minimum value is zero and, in theory, the maximum is unbounded.
+-->
+
+</br>
+
+```{r}
+anova(m1,m2)
+```
+
+</br>
+
+#### **C. Check the assumption for Poisson regression.**
+
+**Assumptions**
+
+- The response variable (*RiskFactors*) is count data that appears to follow a Poisson distribution.
+
+  - Failed to meet assumption. (see histogram below)
+
+- $Mean = Variance$
+
+  - Failed to meet assumption: $4.63961 \ne 1.175736$
+
+</br>
+
+```{r}
+#| fig-align: left
+#| out-width: 80%
+#| fig-asp: 0.6
+#| fig-dpi: 300
+x <- JHS1$RiskFactors
+xbar = mean(x)
+x.pois = rpois(length(x), xbar)
+
+# HISTOGRAM OF OBSERVED DATA vs POISSON
+# observed data
+  barplot(c(0,unname(table(x)),rep(0,7)), main="Obs. Data", ylim=c(0,800), xlim=c(0,14), names.arg=c(0:14), col=alpha("black", 0.5), border=NA)
+# simulated data
+  barplot(unname(table(x.pois)), ylab="Count", xlab="Risk Factors", col=alpha("#FF6AD5", 0.2), border="#FF6AD5", add=T)
+# subtitle
+  text(x=7, y=830, "~ Poiss (lambda = 4.63961)", col="#FF6AD5", xpd=T)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "R Code: Extra."
+#| eval: false
+sx = sd(x)
+
+x.nbinom = rnbinom(length(x), max(x), xbar/max(x))
+x.binom = rbinom(length(x), max(x), xbar/max(x))
+x.norm = rnorm(length(x), xbar, sx)
+
+ks.test(x, x.pois, alternative = "two.sided", simulate.p.value = T)$p.value
+ks.test(x, x.nbinom, alternative = "two.sided", simulate.p.value = T)$p.value
+ks.test(x, x.binom, alternative = "two.sided", simulate.p.value = T)$p.value
+
+# NEG BINOM
+barplot(c(0,unname(table(x)),rep(0,7)), main="Obs. Data", ylim=c(0,800), xlim=c(0,14), names.arg=c(0:14), col=alpha("black", 0.5), border=NA)
+barplot(unname(table(x.nbinom)), ylab="Count", xlab="Risk Factors", col=alpha("#FF6AD5", 0.2), border="#FF6AD5", add=T)
+text(x=7, y=830, "~ NegBinom (r = 7,  p = 0.6628)", col="#FF6AD5", xpd=T)
+
+# BINOM
+barplot(c(0,unname(table(x)),rep(0,7)), main="Obs. Data", ylim=c(0,800), xlim=c(0,14), names.arg=c(0:14), col=alpha("black", 0.5), border=NA)
+barplot(c(0,unname(table(x.binom))), ylab="Count", xlab="Risk Factors", col=alpha("#A0A203", 0.2), border="#A0A203", add=T)
+text(x=7, y=830, "~ Binom (n = 7,  p = 0.6628)", col="#A0A203", xpd=T)
+```
+
+</br>
+
+#### **D. Use your response in 3c to explain your observations in 3b.**
+
+</br>
+
+RiskFactors is bounded above, at 7. Data more closely follows a binom distribution.
+
+</br>
+
+## 4
+
+#### **Required for graduate students / extra credit for undergraduate students: Write a paragraph to summarize the analyses in this project, written such that a non-quantitative person could understand.**
 
 
