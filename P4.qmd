@@ -589,4 +589,6 @@ RiskFactors is bounded above, at 7. Data more closely follows a binom distributi
 
 #### **Required for graduate students / extra credit for undergraduate students: Write a paragraph to summarize the analyses in this project, written such that a non-quantitative person could understand.**
 
+In this project, we created a variable, RiskFactors, by counting the number of not-ideal health indicator variables: smoking, BMI, physical activity, nutrition, cholesterol, blood pressure, and glucose levels. The first model built was a poisson regression, which revealed that age was a significant predictor of stroke, indicating an 8.3% increase in risk of stroke for every 10 year increase in age. Health insurance and education status did not significantly predict risk of stroke. Next we built a negative binomial regression, which resulted in the same model as the poisson regression. This is because when the counts are large enough, a negative binomial distribution converges to a poisson. However, both models failed to meet their assumptions, suggesting that the count data may be better modeled by a distribution other than Poisson.
+
 
